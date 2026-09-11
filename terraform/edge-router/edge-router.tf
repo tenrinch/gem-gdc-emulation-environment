@@ -71,6 +71,12 @@ resource "google_compute_instance" "edge_router" {
 
   can_ip_forward = true
 
+  shielded_instance_config {
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+    enable_integrity_monitoring = true
+  }
+
   deletion_protection = true
 
   metadata = {
