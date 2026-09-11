@@ -40,6 +40,8 @@ substitutions:
   _BUILDER_TAG: latest
   _SSH_SECRET_NAME: gem-cluster-builder-ssh-key
   _SSH_SECRET_VERSION: latest
+  _REPO_URL: "https://github.com/tenrinch/gem-gdc-emulation-environment.git"
+  _BRANCH_NAME: "main"
 
 # Cluster build is ~30 min; allow generous headroom for retries and teardown.
 timeout: 5400s
@@ -66,6 +68,16 @@ availableSecrets:
       env: SSH_PRIVATE_KEY
 
 steps:
+  # Clone repository source into /workspace
+  - id: clone-repo
+    name: gcr.io/cloud-builders/git
+    args:
+      - 'clone'
+      - '--depth=1'
+      - '--branch=${_BRANCH_NAME}'
+      - '${_REPO_URL}'
+      - '.'
+
   # Setup the Cloud Build environment for downstream steps.
   - id: setup
     name: ${_AR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/builder:${_BUILDER_TAG}
