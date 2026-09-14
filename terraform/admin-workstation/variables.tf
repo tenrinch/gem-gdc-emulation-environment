@@ -41,3 +41,9 @@ variable "gce_subnetwork" {
   type    = string
   default = "gem-clusters-subnet"
 }
+
+variable "deletion_protection" {
+  type        = bool
+  description = "Enable deletion protection on the Compute Engine instance."
+  default     = true
+}

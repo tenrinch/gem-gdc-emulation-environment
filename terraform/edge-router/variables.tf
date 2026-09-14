@@ -42,3 +42,9 @@ variable "edge_router_name" {
   type    = string
   default = "gem-edge-router"
 }
+
+variable "deletion_protection" {
+  type        = bool
+  description = "Enable deletion protection on the Compute Engine instance."
+  default     = true
+}

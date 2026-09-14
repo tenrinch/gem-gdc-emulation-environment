@@ -77,7 +77,7 @@ resource "google_compute_instance" "edge_router" {
     enable_integrity_monitoring = true
   }
 
-  deletion_protection = true
+  deletion_protection = var.deletion_protection
 
   metadata = {
     enable-oslogin = "FALSE"

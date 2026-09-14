@@ -35,7 +35,7 @@ resource "google_compute_instance" "admin_ws" {
   project      = var.project_id
 
   can_ip_forward      = true
-  deletion_protection = true
+  deletion_protection = var.deletion_protection
 
   # Applies default GCP firewall rules to allow inbound traffic on ports 80 and 443
   tags = ["http-server", "https-server"]
