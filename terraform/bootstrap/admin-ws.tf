@@ -17,27 +17,19 @@ data "google_compute_image" "ubuntu" {
   project = "ubuntu-os-cloud"
 }
 
-data "google_compute_network" "gdc_vpc" {
-  name    = var.gce_network
-  project = var.project_id
-}
-
-data "google_compute_subnetwork" "gdc_subnet" {
-  name    = var.gce_subnetwork
-  region  = var.region
-  project = var.project_id
-}
+# ==============================================================================
+# Admin Workstation Compute Engine Instance
+# ==============================================================================
 
 resource "google_compute_instance" "admin_ws" {
   name         = "gem-admin-ws"
-  machine_type = "e2-standard-4"
+  machine_type = var.admin_ws_machine_type
   zone         = var.zone
   project      = var.project_id
 
   can_ip_forward      = true
   deletion_protection = var.deletion_protection
 
-  # Applies default GCP firewall rules to allow inbound traffic on ports 80 and 443
   tags = ["http-server", "https-server"]
 
   boot_disk {
@@ -49,8 +41,8 @@ resource "google_compute_instance" "admin_ws" {
   }
 
   network_interface {
-    network    = data.google_compute_network.gdc_vpc.self_link
-    subnetwork = data.google_compute_subnetwork.gdc_subnet.self_link
+    network    = google_compute_network.gdc_vpc.self_link
+    subnetwork = google_compute_subnetwork.gdc_subnet.self_link
   }
 
   shielded_instance_config {

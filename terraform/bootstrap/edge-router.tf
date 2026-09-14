@@ -12,47 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-terraform {
-  required_version = ">= 1.12.2"
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 7.30.0"
-    }
-  }
-}
-
-provider "google" {
-  project                     = var.project_id
-  region                      = var.region
-  zone                        = var.zone
-  impersonate_service_account = var.provisioning_sa_email
-}
-
-data "google_compute_network" "gdc_vpc" {
-  name = "gem-clusters-vpc"
-}
-
-data "google_compute_subnetwork" "gdc_subnet" {
-  name   = "gem-clusters-subnet"
-  region = var.region
-}
-
-data "google_compute_image" "ubuntu" {
-  family  = "ubuntu-2404-lts-amd64"
-  project = "ubuntu-os-cloud"
-}
-
-data "google_compute_instance" "gem_admin_ws" {
-  name    = "gem-admin-ws"
-  project = var.project_id
-  zone    = var.zone
-}
+# ==============================================================================
+# Edge Router Compute Engine Instance
+# ==============================================================================
 
 resource "google_compute_instance" "edge_router" {
   name         = var.edge_router_name
-  machine_type = var.machine_type
+  machine_type = var.edge_router_machine_type
   zone         = var.zone
+  project      = var.project_id
 
   tags = ["http-server", "https-server"]
 
@@ -65,8 +33,8 @@ resource "google_compute_instance" "edge_router" {
   }
 
   network_interface {
-    network    = data.google_compute_network.gdc_vpc.self_link
-    subnetwork = data.google_compute_subnetwork.gdc_subnet.self_link
+    network    = google_compute_network.gdc_vpc.self_link
+    subnetwork = google_compute_subnetwork.gdc_subnet.self_link
   }
 
   can_ip_forward = true
@@ -81,7 +49,7 @@ resource "google_compute_instance" "edge_router" {
 
   metadata = {
     enable-oslogin = "FALSE"
-    ssh-keys       = "gem:${lookup(data.google_compute_instance.gem_admin_ws.metadata, "workstation_pubkey", "")}"
+    ssh-keys       = "gem:${lookup(google_compute_instance.admin_ws.metadata, "workstation_pubkey", "")}"
   }
 
   service_account {

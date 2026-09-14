@@ -12,15 +12,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Service Account that Cloud Build runs as when executing the cluster-build
-# pipeline. Heavy compute work is done by impersonating the existing
-# provisioning SA (see google_service_account_iam_member below), so this SA
-# only carries the minimum project-level grants the pipeline needs directly.
+# ==============================================================================
+# Artifact Registry for Builder Image
+# ==============================================================================
+
+resource "google_artifact_registry_repository" "gem" {
+  repository_id = var.artifact_registry_repository
+  location      = var.ar_location != "" ? var.ar_location : var.region
+  format        = "DOCKER"
+  description   = "GEM build artifacts (Cloud Build builder image)"
+  project       = var.project_id
+  depends_on    = [google_project_service.apis]
+}
+
+# ==============================================================================
+# Secret Manager for SSH Private Key
+# ==============================================================================
+
+resource "google_secret_manager_secret" "ssh" {
+  secret_id = var.ssh_secret_name
+  project   = var.project_id
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+# ==============================================================================
+# Cloud Build Builder Service Account & Permissions
+# ==============================================================================
+
 resource "google_service_account" "builder" {
   account_id   = var.builder_sa_name
   display_name = "GEM Cluster Build SA (Cloud Build)"
   project      = var.project_id
   depends_on   = [google_project_service.apis]
+}
+
+resource "google_secret_manager_secret_iam_member" "builder_accessor" {
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.ssh.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.builder.email}"
 }
 
 resource "google_project_iam_member" "builder_roles" {
@@ -37,10 +72,8 @@ resource "google_project_iam_member" "builder_roles" {
   member  = "serviceAccount:${google_service_account.builder.email}"
 }
 
-# Allow the builder SA to impersonate the provisioning SA. Terraform inside
-# Cloud Build uses GOOGLE_IMPERSONATE_SERVICE_ACCOUNT to pick this up.
 resource "google_service_account_iam_member" "builder_impersonates_provisioner" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${var.provisioning_sa_email}"
+  service_account_id = google_service_account.tf_provisioner.name
   role               = "roles/iam.serviceAccountTokenCreator"
   member             = "serviceAccount:${google_service_account.builder.email}"
 }

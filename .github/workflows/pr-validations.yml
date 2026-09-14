@@ -78,7 +78,7 @@ jobs:
       - name: Terraform Init Mocks
         if: steps.changes.outputs.terraform == 'true'
         run: |
-          for dir in terraform/foundation terraform/admin-workstation terraform/cluster terraform/edge-router; do
+          for dir in terraform/bootstrap terraform/cluster; do
             if [ -d "$dir" ]; then
               echo "Initializing $dir..."
               backend_file="$dir/backend.tf"

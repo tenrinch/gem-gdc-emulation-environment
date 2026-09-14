@@ -29,9 +29,7 @@ if [ -z "${PROJECT_ID:-}" ]; then
   fi
 fi
 
-# Updated for vlab poc 
-RAW_BUCKET="${TF_STATE_BUCKET:-gem-${PROJECT_ID}-tfstate}"
-BUCKET="gs://${RAW_BUCKET#gs://}"
+BUCKET="gs://gem-${PROJECT_ID}-tfstate"
 
 # Temp directory for state files
 STATE_DIR=$(mktemp -d)
