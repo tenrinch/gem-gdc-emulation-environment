@@ -98,6 +98,10 @@ resource "google_iam_workload_identity_pool" "gh_actions_pool" {
   description               = "Workload Identity Pool for GitHub Actions keyless CI/CD authentication"
   disabled                  = false
 
+  lifecycle {
+    ignore_changes = [project]
+  }
+
   depends_on = [
     google_project_service.apis
   ]
@@ -110,6 +114,10 @@ resource "google_iam_workload_identity_pool_provider" "github_provider" {
   display_name                       = "GitHub Actions Provider"
   description                        = "OIDC Identity Provider for GitHub Actions"
   disabled                           = false
+
+  lifecycle {
+    ignore_changes = [project]
+  }
 
   attribute_mapping = {
     "google.subject"             = "assertion.sub"
