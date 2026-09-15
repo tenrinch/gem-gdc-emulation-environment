@@ -11,10 +11,44 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+- name: Ensure GCP SSH Access is initialized on Edge Router
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    gcp_project: "{{ gcp_project_id }}"
+    gcp_zone_val: "{{ gcp_zone }}"
+    router_name: "gem-edge-router"
+
+  tasks:
+    - name: Trigger initial SSH connection to Edge Router to populate keys on host
+      ansible.builtin.command: >
+        gcloud compute ssh {{ router_name }} --tunnel-through-iap --project={{ gcp_project }} --zone={{ gcp_zone_val }} --command="true"
+      register: ssh_trigger
+      changed_when: false
+      until: ssh_trigger is success
+      retries: 6
+      delay: 5
+
 - name: Setup Edge Router
   hosts: edge_router
   become: true
   pre_tasks:
+    - name: Ensure .ssh directory exists for platform user
+      ansible.builtin.file:
+        path: "{{ gem_home }}/.ssh"
+        state: directory
+        owner: "{{ gem_user }}"
+        group: "{{ gem_user }}"
+        mode: "0700"
+
+    - name: Authorize Workstation Public Key on Edge Router
+      ansible.posix.authorized_key:
+        user: "{{ gem_user }}"
+        key: "{{ lookup('file', '/tmp/ws_id_rsa.pub', errors='ignore') }}"
+        state: present
+      when: lookup('file', '/tmp/ws_id_rsa.pub', errors='ignore') != ""
+
     - name: Perform APT package upgrades
       ansible.builtin.apt:
         update_cache: true
