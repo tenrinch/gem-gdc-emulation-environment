@@ -28,7 +28,7 @@ install -m 600 /workspace/.ssh/google_compute_engine /root/.ssh/google_compute_e
 [[ -f /workspace/.ssh/config ]] && install -m 600 /workspace/.ssh/config /root/.ssh/config
 
 cd ansible
-
+chmod +x inventory.sh
 # Best-effort cleanup (un-registers cluster from GKE Hub Fleet)
 if ! ansible-playbook cleanup.yaml -e "cluster_name=${CLUSTER_NAME}" -i inventory.sh; then
   echo "⚠️  Ansible GKE Hub cleanup failed or bypassed; proceeding with infrastructure destruction..."
