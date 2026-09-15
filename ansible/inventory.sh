@@ -29,7 +29,8 @@ if [ -z "${PROJECT_ID:-}" ]; then
   fi
 fi
 
-# Added this so that the inventory can find the local state files syned from the mcd-seed-4211-state
+# Added this so that the inventory can find the local state files synced from the mcd-seed-4211-state
+if [ -n "${TF_STATE_BUCKET:-}" ]; then
   if [[ "$TF_STATE_BUCKET" =~ ^gs:// ]]; then
     BUCKET="$TF_STATE_BUCKET"
   else
@@ -119,27 +120,30 @@ if [ -z "$GEM_WS_INTERNAL_IP" ]; then
   GEM_WS_INTERNAL_IP=$(get_tf_output "admin-workstation" "workstation_ip")
 fi
 
-GCP_PROJECT=$(get_tf_output "bootstrap" "project_id")
-if [ -z "$GCP_PROJECT" ]; then
-  GCP_PROJECT=$(get_tf_output "admin-workstation" "project_id")
-fi
-if [ -z "$GCP_PROJECT" ]; then
-  GCP_PROJECT=$(get_tf_output "foundation" "project_id")
+GCP_PROJECT="${GCP_PROJECT:-$PROJECT_ID}"
+TF_PROJECT=$(get_tf_output "bootstrap" "project_id")
+if [ -n "$TF_PROJECT" ]; then
+  GCP_PROJECT="$TF_PROJECT"
+else
+  TF_PROJECT=$(get_tf_output "admin-workstation" "project_id")
+  if [ -n "$TF_PROJECT" ]; then
+    GCP_PROJECT="$TF_PROJECT"
+  fi
 fi
 
-GEM_GCP_ZONE=$(get_tf_output "bootstrap" "zone")
-if [ -z "$GEM_GCP_ZONE" ]; then
-  GEM_GCP_ZONE=$(get_tf_output "admin-workstation" "zone")
+TF_ZONE=$(get_tf_output "bootstrap" "zone")
+if [ -n "$TF_ZONE" ]; then
+  GEM_GCP_ZONE="$TF_ZONE"
+else
+  TF_ZONE=$(get_tf_output "admin-workstation" "zone")
+  if [ -n "$TF_ZONE" ]; then
+    GEM_GCP_ZONE="$TF_ZONE"
+  fi
 fi
 
 GCP_PROJECT_NUMBER=$(get_tf_output "bootstrap" "project_number")
 if [ -z "$GCP_PROJECT_NUMBER" ]; then
   GCP_PROJECT_NUMBER=$(get_tf_output "foundation" "project_number")
-fi
-
-# If Terraform state did not have the zone, fallback to the environment variable.
-if [ -z "$GEM_GCP_ZONE" ]; then
-  GEM_GCP_ZONE="${GEM_GCP_ZONE:-}"
 fi
 
 if [[ ! "${GEM_GCP_ZONE:-}" =~ ^[a-z]+-[a-z0-9]+-[a-z]$ ]]; then
