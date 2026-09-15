@@ -33,6 +33,18 @@ TF_STATE_BUCKET="${TF_STATE_BUCKET_IN:-gem-${PROJECT_ID}-tfstate}"
 # identity when the caller didn't pass one explicitly.
 PROVISIONING_SA_EMAIL="${PROVISIONING_SA_EMAIL:-tf-provisioner@${PROJECT_ID}.iam.gserviceaccount.com}"
 
+# Resolve the Admin Workstation's zone so cluster nodes can be deployed in a different zone
+ADMIN_WS_ZONE=$(gcloud storage cat "${TF_STATE_BUCKET}/bootstrap/state/default.tfstate" 2>/dev/null | jq -r '.outputs.zone.value // empty' || echo "")
+if [ -z "$ADMIN_WS_ZONE" ]; then
+  ADMIN_WS_ZONE=$(gcloud storage cat "gs://${TF_STATE_BUCKET}/bootstrap/state/default.tfstate" 2>/dev/null | jq -r '.outputs.zone.value // empty' || echo "")
+fi
+if [ -z "$ADMIN_WS_ZONE" ]; then
+  ADMIN_WS_ZONE=$(gcloud compute instances list --project="${PROJECT_ID}" --filter="name:gem-admin-ws" --format="value(zone.basename())" 2>/dev/null | head -n 1 || echo "")
+fi
+if [ -z "$ADMIN_WS_ZONE" ]; then
+  ADMIN_WS_ZONE="${GEM_GCP_ZONE}"
+fi
+
 mkdir -p /workspace/state
 cat >/workspace/state/env <<ENV
 export PROJECT_ID="${PROJECT_ID}"
@@ -45,9 +57,12 @@ export DESTROY_ON_FAILURE="${DESTROY_ON_FAILURE:-false}"
 export GEM_GCP_ZONE="${GEM_GCP_ZONE}"
 export GEM_GCP_REGION="${GEM_GCP_REGION}"
 export GEM_TF_STATE_LOCATION="${GEM_TF_STATE_LOCATION}"
+export ADMIN_WS_ZONE="${ADMIN_WS_ZONE}"
 export TF_VAR_zone="${GEM_GCP_ZONE}"
 export TF_VAR_region="${GEM_GCP_REGION}"
+export TF_VAR_admin_ws_zone="${ADMIN_WS_ZONE}"
 ENV
+
 
 echo "PROJECT_ID         = ${PROJECT_ID}"
 echo "CLUSTER_NAME       = ${CLUSTER_NAME}"

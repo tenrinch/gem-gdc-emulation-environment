@@ -26,6 +26,13 @@ variable "zone" {
 
 }
 
+variable "admin_ws_zone" {
+  type        = string
+  description = "The GCP zone where gem-admin-ws is deployed (defaults to var.zone if not specified)."
+  default     = ""
+}
+
+
 # This variable is used by the Ansible playbooks
 # tflint-ignore: terraform_unused_declarations
 variable "provisioning_sa_email" {

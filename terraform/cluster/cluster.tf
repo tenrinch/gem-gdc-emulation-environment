@@ -46,9 +46,10 @@ data "google_compute_subnetwork" "gdc_subnet" {
 
 data "google_compute_instance" "gem_admin_ws" {
   name    = "gem-admin-ws"
-  zone    = var.zone
+  zone    = var.admin_ws_zone != "" ? var.admin_ws_zone : var.zone
   project = var.project_id
 }
+
 
 data "google_compute_image" "ubuntu" {
   family  = "ubuntu-2404-lts-amd64"
