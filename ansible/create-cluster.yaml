@@ -24,7 +24,12 @@
 - name: Ensure GCP SSH Key exists locally
   hosts: localhost
   connection: local
+  gather_facts: false
+  vars:
+    gcp_project_id: "{{ gcp_project_id | default(lookup('env', 'PROJECT_ID'), true) }}"
+    gcp_zone: "{{ gcp_zone | default(lookup('env', 'GEM_GCP_ZONE'), true) }}"
   tasks:
+
     - name: Assert CLUSTER_NAME environment variable is set
       ansible.builtin.assert:
         that:

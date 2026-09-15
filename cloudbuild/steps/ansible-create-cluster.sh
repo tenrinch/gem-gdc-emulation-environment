@@ -35,7 +35,9 @@ if [[ -f /workspace/state/failed-stage ]]; then
   exit 0
 fi
 
-extra_vars=()
+extra_vars=(
+  --extra-vars "gcp_project_id=${PROJECT_ID} gcp_zone=${GEM_GCP_ZONE} cluster_name=${CLUSTER_NAME}"
+)
 if [[ -n "${EMULATE_GDC_VERSION}" ]]; then
   extra_vars+=(--extra-vars "emulate_gdc_version=${EMULATE_GDC_VERSION}")
 fi
