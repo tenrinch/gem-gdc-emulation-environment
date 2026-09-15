@@ -43,6 +43,7 @@ if [[ -n "${EMULATE_GDC_VERSION}" ]]; then
 fi
 
 cd ansible
+chmod +x inventory.sh
 if ! ansible-playbook create-cluster.yaml "${extra_vars[@]}"; then
   echo "ansible-create-cluster" >/workspace/state/failed-stage
   exit 1
