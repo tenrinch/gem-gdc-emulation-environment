@@ -29,7 +29,21 @@ if [ -z "${PROJECT_ID:-}" ]; then
   fi
 fi
 
-BUCKET="gs://gem-${PROJECT_ID}-tfstate"
+# Added this so that the inventory can find the local state files syned from the mcd-seed-4211-state
+  if [[ "$TF_STATE_BUCKET" =~ ^gs:// ]]; then
+    BUCKET="$TF_STATE_BUCKET"
+  else
+    BUCKET="gs://${TF_STATE_BUCKET}"
+  fi
+elif [ -n "${STATE_BUCKET_NAME:-}" ]; then
+  if [[ "$STATE_BUCKET_NAME" =~ ^gs:// ]]; then
+    BUCKET="$STATE_BUCKET_NAME"
+  else
+    BUCKET="gs://${STATE_BUCKET_NAME}"
+  fi
+else
+  BUCKET="gs://gem-${PROJECT_ID}-tfstate"
+fi
 
 # Temp directory for state files
 STATE_DIR=$(mktemp -d)
@@ -43,7 +57,8 @@ fetch_state() {
   gcloud storage cp "${BUCKET}/${prefix}/default.tfstate" "${STATE_DIR}/${name}.json" >/dev/null 2>&1 || touch "${STATE_DIR}/${name}.json"
 }
 
-# Fetch states
+# Fetch states (support both unified bootstrap state and decoupled layer states)
+fetch_state "bootstrap/state" "bootstrap"
 fetch_state "foundation/state" "foundation"
 fetch_state "admin-workstation/state" "admin-workstation"
 fetch_state "edge-router/state" "edge-router"
@@ -94,16 +109,33 @@ get_tf_json() {
 }
 
 # Fetch Admin Workstation details (Required)
-GEM_WS_NAME=$(get_tf_output "admin-workstation" "workstation_name")
-GEM_WS_INTERNAL_IP=$(get_tf_output "admin-workstation" "workstation_ip")
-GCP_PROJECT=$(get_tf_output "admin-workstation" "project_id")
-GEM_GCP_ZONE=$(get_tf_output "admin-workstation" "zone")
+GEM_WS_NAME=$(get_tf_output "bootstrap" "workstation_name")
+if [ -z "$GEM_WS_NAME" ]; then
+  GEM_WS_NAME=$(get_tf_output "admin-workstation" "workstation_name")
+fi
 
-# Fallback if somehow missing
+GEM_WS_INTERNAL_IP=$(get_tf_output "bootstrap" "workstation_ip")
+if [ -z "$GEM_WS_INTERNAL_IP" ]; then
+  GEM_WS_INTERNAL_IP=$(get_tf_output "admin-workstation" "workstation_ip")
+fi
+
+GCP_PROJECT=$(get_tf_output "bootstrap" "project_id")
+if [ -z "$GCP_PROJECT" ]; then
+  GCP_PROJECT=$(get_tf_output "admin-workstation" "project_id")
+fi
 if [ -z "$GCP_PROJECT" ]; then
   GCP_PROJECT=$(get_tf_output "foundation" "project_id")
 fi
-GCP_PROJECT_NUMBER=$(get_tf_output "foundation" "project_number")
+
+GEM_GCP_ZONE=$(get_tf_output "bootstrap" "zone")
+if [ -z "$GEM_GCP_ZONE" ]; then
+  GEM_GCP_ZONE=$(get_tf_output "admin-workstation" "zone")
+fi
+
+GCP_PROJECT_NUMBER=$(get_tf_output "bootstrap" "project_number")
+if [ -z "$GCP_PROJECT_NUMBER" ]; then
+  GCP_PROJECT_NUMBER=$(get_tf_output "foundation" "project_number")
+fi
 
 # If Terraform state did not have the zone, fallback to the environment variable.
 if [ -z "$GEM_GCP_ZONE" ]; then
@@ -146,8 +178,15 @@ fi
 
 # Fetch Edge Router details (Optional)
 # shellcheck disable=SC2034
-EDGE_ROUTER_IP=$(get_tf_output "edge-router" "edge_router_ip")
-EDGE_ROUTER_NAME=$(get_tf_output "edge-router" "edge_router_name")
+EDGE_ROUTER_IP=$(get_tf_output "bootstrap" "edge_router_ip")
+if [ -z "$EDGE_ROUTER_IP" ]; then
+  EDGE_ROUTER_IP=$(get_tf_output "edge-router" "edge_router_ip")
+fi
+
+EDGE_ROUTER_NAME=$(get_tf_output "bootstrap" "edge_router_name")
+if [ -z "$EDGE_ROUTER_NAME" ]; then
+  EDGE_ROUTER_NAME=$(get_tf_output "edge-router" "edge_router_name")
+fi
 
 # If Admin WS isn't deployed yet, return empty inventory
 if [ -z "$GEM_WS_NAME" ]; then

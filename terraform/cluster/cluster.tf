@@ -133,7 +133,9 @@ locals {
 
   selected_hardware_variant = contains(keys(local.hardware_variants), var.hardware_variant) ? var.hardware_variant : "g2-small-64gb"
   hardware_config           = local.hardware_variants[local.selected_hardware_variant]
+  state_bucket_name         = var.state_bucket_name != "" ? var.state_bucket_name : "${var.project_id}-state"
 }
+
 
 resource "terraform_data" "hardware_variant_validation" {
   lifecycle {
@@ -225,3 +227,59 @@ EOF
     scopes = ["cloud-platform"]
   }
 }
+
+# ==============================================================================
+# Local State & Inventory Synchronization Object
+# ==============================================================================
+# Synchronizes the cluster node endpoints directly into the local state bucket so
+# that ansible/inventory.sh and Cloud Build can discover the cluster node names
+# and IPs with zero drift, regardless of where the root cluster state is stored.
+resource "google_storage_bucket_object" "cluster_inventory_state" {
+  name   = "clusters/${var.cluster_name}/state/default.tfstate"
+  bucket = local.state_bucket_name
+
+  content = jsonencode({
+    version           = 4
+    terraform_version = "1.12.2"
+    serial            = 1
+    outputs = {
+      cluster_name = {
+        value = var.cluster_name
+        type  = "string"
+      }
+      cluster_nodes_names = {
+        value = {
+          node1 = google_compute_instance.gdc_vms["node1"].name
+          node2 = google_compute_instance.gdc_vms["node2"].name
+          node3 = google_compute_instance.gdc_vms["node3"].name
+        }
+        type = ["object", { node1 = "string", node2 = "string", node3 = "string" }]
+      }
+      cluster_nodes_ips = {
+        value = {
+          node1 = google_compute_instance.gdc_vms["node1"].network_interface[0].network_ip
+          node2 = google_compute_instance.gdc_vms["node2"].network_interface[0].network_ip
+          node3 = google_compute_instance.gdc_vms["node3"].network_interface[0].network_ip
+        }
+        type = ["object", { node1 = "string", node2 = "string", node3 = "string" }]
+      }
+      bmctl_version = {
+        value = var.bmctl_version
+        type  = "string"
+      }
+      node_storage_size = {
+        value = var.node_storage_size
+        type  = "string"
+      }
+      project_id = {
+        value = var.project_id
+        type  = "string"
+      }
+      zone = {
+        value = var.zone
+        type  = "string"
+      }
+    }
+  })
+}
+

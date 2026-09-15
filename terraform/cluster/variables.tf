@@ -81,3 +81,10 @@ variable "node_storage_size" {
   description = "The size of the node storage partition (e.g., 100GB)."
   default     = "100GB"
 }
+
+variable "state_bucket_name" {
+  type        = string
+  description = "Local state bucket name to publish inventory state to (defaults to <project_id>-state)."
+  default     = ""
+}
+

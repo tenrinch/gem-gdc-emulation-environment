@@ -190,3 +190,55 @@ resource "google_service_account_iam_member" "operator_token_creator" {
   role               = "roles/iam.serviceAccountTokenCreator"
   member             = "user:${var.operator_user_email}"
 }
+
+# ==============================================================================
+# Local State & Inventory Synchronization Object
+# ==============================================================================
+# Synchronizes the bootstrap outputs directly into the local state bucket so that
+# ansible/inventory.sh and Cloud Build can discover the workstation and router
+# endpoints with zero drift, regardless of where the root Terraform state is stored.
+resource "google_storage_bucket_object" "inventory_state" {
+  name   = "bootstrap/state/default.tfstate"
+  bucket = google_storage_bucket.tf_state.name
+
+  content = jsonencode({
+    version           = 4
+    terraform_version = "1.12.2"
+    serial            = 1
+    outputs = {
+      workstation_name = {
+        value = google_compute_instance.admin_ws.name
+        type  = "string"
+      }
+      workstation_ip = {
+        value = google_compute_instance.admin_ws.network_interface[0].network_ip
+        type  = "string"
+      }
+      edge_router_name = {
+        value = google_compute_instance.edge_router.name
+        type  = "string"
+      }
+      edge_router_ip = {
+        value = google_compute_instance.edge_router.network_interface[0].network_ip
+        type  = "string"
+      }
+      project_id = {
+        value = var.project_id
+        type  = "string"
+      }
+      project_number = {
+        value = tostring(data.google_project.project.number)
+        type  = "string"
+      }
+      zone = {
+        value = var.zone
+        type  = "string"
+      }
+      region = {
+        value = var.region
+        type  = "string"
+      }
+    }
+  })
+}
+

@@ -31,6 +31,7 @@ apply_args=(
   -var="project_id=${PROJECT_ID}"
   -var="cluster_name=${CLUSTER_NAME}"
   -var="hardware_variant=${HARDWARE_VARIANT}"
+  -var="state_bucket_name=${TF_STATE_BUCKET}"
 )
 if [[ -n "${PROVISIONING_SA_EMAIL}" ]]; then
   backend_args+=(-backend-config="impersonate_service_account=${PROVISIONING_SA_EMAIL}")
