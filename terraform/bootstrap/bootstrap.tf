@@ -240,5 +240,12 @@ resource "google_storage_bucket_object" "inventory_state" {
       }
     }
   })
+
+  depends_on = [
+    google_compute_instance.admin_ws,
+    google_compute_instance.edge_router,
+  ]
 }
+
+
 

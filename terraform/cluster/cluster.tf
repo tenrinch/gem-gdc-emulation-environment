@@ -282,5 +282,11 @@ resource "google_storage_bucket_object" "cluster_inventory_state" {
       }
     }
   })
+
+  depends_on = [
+    google_compute_instance.gdc_vms,
+  ]
 }
+
+
 
