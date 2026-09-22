@@ -192,6 +192,27 @@ if [ -z "$EDGE_ROUTER_NAME" ]; then
   EDGE_ROUTER_NAME=$(get_tf_output "edge-router" "edge_router_name")
 fi
 
+WS_ZONE="${GEM_GCP_ZONE}"
+
+EDGE_ROUTER_ZONE=$(get_tf_output "bootstrap" "zone")
+if [ -z "$EDGE_ROUTER_ZONE" ]; then
+  EDGE_ROUTER_ZONE=$(get_tf_output "edge-router" "zone")
+fi
+if [ -z "$EDGE_ROUTER_ZONE" ]; then
+  EDGE_ROUTER_ZONE="${GEM_GCP_ZONE}"
+fi
+
+CLUSTER_ZONE=$(get_tf_output "cluster" "zone")
+if [ -z "$CLUSTER_ZONE" ]; then
+  CLUSTER_ZONE="${GEM_GCP_ZONE}"
+fi
+
+if [[ ! "${CLUSTER_ZONE:-}" =~ ^[a-z]+-[a-z0-9]+-[a-z]$ ]]; then
+  echo "🚫 ERROR: Invalid or missing CLUSTER_ZONE. Please provide a valid GCP zone (e.g. 'us-east1-a')." >&2
+  exit 1
+fi
+CLUSTER_REGION="${CLUSTER_ZONE%-*}"
+
 # If Admin WS isn't deployed yet, return empty inventory
 if [ -z "$GEM_WS_NAME" ]; then
   echo "{}"
@@ -218,13 +239,13 @@ cat <<EOF
 {
   "all": {
     "vars": {
-      "ansible_ssh_common_args": "-i ~/.ssh/google_compute_engine -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPersist=30m -o ConnectionAttempts=100 -o ProxyCommand='gcloud compute start-iap-tunnel %h %p --listen-on-stdin --project=${GCP_PROJECT} --zone=${GEM_GCP_ZONE}'",
+      "ansible_ssh_common_args": "-i ~/.ssh/google_compute_engine -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPersist=30m -o ConnectionAttempts=100 -o ProxyCommand='gcloud compute start-iap-tunnel %h %p --listen-on-stdin --project=${GCP_PROJECT} --zone=${CLUSTER_ZONE}'",
       "ansible_python_interpreter": "/usr/bin/python3",
       "ansible_user": "${GCP_USER}",
       "gcp_project_id": "${GCP_PROJECT}",
       "gcp_project_number": "${GCP_PROJECT_NUMBER}",
-      "gcp_zone": "${GEM_GCP_ZONE}",
-      "gcp_region": "${GEM_GCP_REGION}",
+      "gcp_zone": "${CLUSTER_ZONE}",
+      "gcp_region": "${CLUSTER_REGION}",
       "tf_cluster_name": "${CLUSTER_NAME}",
 $(if [ -n "$BMCTL_VERSION" ]; then echo "      \"bmctl_version\": \"${BMCTL_VERSION}\","; fi)
       "vxlan_id": "${VXLAN_ID}",
@@ -254,14 +275,16 @@ $(if [ -n "$BMCTL_VERSION" ]; then echo "      \"bmctl_version\": \"${BMCTL_VERS
         "ansible_host": "${GEM_WS_NAME}",
         "internal_ip": "${GEM_WS_INTERNAL_IP}",
         "vxlan_ip": "${VXLAN_BASE}.100",
-        "host_octet": 100
+        "host_octet": 100,
+        "ansible_ssh_common_args": "-i ~/.ssh/google_compute_engine -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPersist=30m -o ConnectionAttempts=100 -o ProxyCommand='gcloud compute start-iap-tunnel %h %p --listen-on-stdin --project=${GCP_PROJECT} --zone=${WS_ZONE}'"
       }
 $(if [ -n "$EDGE_ROUTER_NAME" ]; then cat <<INNER_EOF
       , "edge_router_host": {
         "ansible_host": "${EDGE_ROUTER_NAME}",
         "internal_ip": "${EDGE_ROUTER_IP}",
         "vxlan_ip": "${VXLAN_BASE}.254",
-        "host_octet": 254
+        "host_octet": 254,
+        "ansible_ssh_common_args": "-i ~/.ssh/google_compute_engine -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPersist=30m -o ConnectionAttempts=100 -o ProxyCommand='gcloud compute start-iap-tunnel %h %p --listen-on-stdin --project=${GCP_PROJECT} --zone=${EDGE_ROUTER_ZONE}'"
       }
 INNER_EOF
 fi)
@@ -270,19 +293,22 @@ $(if [ -n "$NODE1_NAME" ]; then cat <<INNER_EOF
         "ansible_host": "${NODE1_NAME}",
         "internal_ip": "${NODE1_INTERNAL_IP}",
         "vxlan_ip": "${VXLAN_BASE}.2",
-        "host_octet": 2
+        "host_octet": 2,
+        "ansible_ssh_common_args": "-i ~/.ssh/google_compute_engine -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPersist=30m -o ConnectionAttempts=100 -o ProxyCommand='gcloud compute start-iap-tunnel %h %p --listen-on-stdin --project=${GCP_PROJECT} --zone=${CLUSTER_ZONE}'"
       },
       "node2": {
         "ansible_host": "${NODE2_NAME}",
         "internal_ip": "${NODE2_INTERNAL_IP}",
         "vxlan_ip": "${VXLAN_BASE}.3",
-        "host_octet": 3
+        "host_octet": 3,
+        "ansible_ssh_common_args": "-i ~/.ssh/google_compute_engine -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPersist=30m -o ConnectionAttempts=100 -o ProxyCommand='gcloud compute start-iap-tunnel %h %p --listen-on-stdin --project=${GCP_PROJECT} --zone=${CLUSTER_ZONE}'"
       },
       "node3": {
         "ansible_host": "${NODE3_NAME}",
         "internal_ip": "${NODE3_INTERNAL_IP}",
         "vxlan_ip": "${VXLAN_BASE}.4",
-        "host_octet": 4
+        "host_octet": 4,
+        "ansible_ssh_common_args": "-i ~/.ssh/google_compute_engine -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPersist=30m -o ConnectionAttempts=100 -o ProxyCommand='gcloud compute start-iap-tunnel %h %p --listen-on-stdin --project=${GCP_PROJECT} --zone=${CLUSTER_ZONE}'"
       }
 INNER_EOF
 fi)
