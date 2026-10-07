@@ -58,4 +58,12 @@ resource "google_compute_instance" "admin_ws" {
   service_account {
     scopes = ["cloud-platform"]
   }
+
+  lifecycle {
+    ignore_changes = [
+      boot_disk[0].initialize_params[0].image,
+      metadata["workstation_pubkey"],
+      metadata["ssh-keys"],
+    ]
+  }
 }

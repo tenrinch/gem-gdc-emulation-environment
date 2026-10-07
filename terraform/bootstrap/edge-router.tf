@@ -55,4 +55,11 @@ resource "google_compute_instance" "edge_router" {
   service_account {
     scopes = ["cloud-platform"]
   }
+
+  lifecycle {
+    ignore_changes = [
+      boot_disk[0].initialize_params[0].image,
+      metadata["ssh-keys"],
+    ]
+  }
 }

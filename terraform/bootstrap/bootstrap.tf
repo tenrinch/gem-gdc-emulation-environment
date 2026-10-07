@@ -247,6 +247,13 @@ resource "google_storage_bucket_object" "inventory_state" {
     google_compute_instance.admin_ws,
     google_compute_instance.edge_router,
   ]
+
+  lifecycle {
+    replace_triggered_by = [
+      google_compute_instance.admin_ws.id,
+      google_compute_instance.edge_router.id,
+    ]
+  }
 }
 
 
