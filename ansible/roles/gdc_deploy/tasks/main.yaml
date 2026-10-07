@@ -62,11 +62,12 @@
   ansible.builtin.debug:
     var: gdc_deploy_cluster_create.stdout_lines
   when: gdc_deploy_cluster_create is defined and gdc_deploy_cluster_create.stdout_lines is defined
-- name: Create ClusterRoleBinding for GKE Connect Gateway access
+- name: Create ClusterRoleBinding for GKE Connect Gateway and Config Delivery access
   become: true
   become_user: "{{ gem_user }}"
   ansible.builtin.shell: |
     set -o pipefail
+    PROJECT_NUMBER=$(gcloud projects describe {{ gcp_project_id }} --format="value(projectNumber)")
     cat <<EOF | kubectl --kubeconfig {{ gem_home }}/bmctl-workspace/{{ cluster_name }}/{{ cluster_name }}-kubeconfig apply -f -
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -75,6 +76,8 @@
     subjects:
     - kind: User
       name: {{ gcp_cluster_admin_sa }}
+    - kind: User
+      name: service-${PROJECT_NUMBER}@gcp-sa-configdelivery.iam.gserviceaccount.com
     roleRef:
       kind: ClusterRole
       name: cluster-admin
@@ -82,6 +85,8 @@
     EOF
   args:
     executable: /bin/bash
+  environment:
+    GOOGLE_APPLICATION_CREDENTIALS: "{{ gem_home }}/bm-gcr.json"
   register: gdc_deploy_apply_crb
   changed_when: '"created" in gdc_deploy_apply_crb.stdout or "configured" in gdc_deploy_apply_crb.stdout'
   retries: 10
