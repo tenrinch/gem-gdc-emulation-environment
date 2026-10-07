@@ -31,7 +31,9 @@ locals {
     "roles/storage.admin",
     "roles/iam.workloadIdentityPoolAdmin",
     "roles/iap.tunnelResourceAccessor",
-    "roles/cloudbuild.builds.editor"
+    "roles/cloudbuild.builds.editor",
+    "roles/configdelivery.configDeliveryAdmin",
+    "roles/configdelivery.resourceBundlePublisher"
   ]
 }
 

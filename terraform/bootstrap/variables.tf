@@ -159,6 +159,7 @@ variable "activate_apis" {
     "cloudbuild.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
+    "configdelivery.googleapis.com",
     "connectgateway.googleapis.com",
     "container.googleapis.com",
     "gkeconnect.googleapis.com",

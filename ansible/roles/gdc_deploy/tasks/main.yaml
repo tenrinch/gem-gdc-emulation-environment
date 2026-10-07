@@ -88,3 +88,29 @@
   delay: 10
   until: gdc_deploy_apply_crb.rc == 0
   when: gdc_deploy_cluster_create is not failed
+- name: Enable Config Sync on Fleet Membership for Fleet Packages
+  become: true
+  become_user: "{{ gem_user }}"
+  ansible.builtin.shell: |
+    set -o pipefail
+    cat <<EOF > /tmp/config-sync-{{ cluster_name }}.yaml
+    applySpecVersion: 1
+    spec:
+      configSync:
+        enabled: true
+        sourceFormat: unstructured
+    EOF
+    gcloud beta container fleet config-management apply \
+      --membership={{ cluster_name }} \
+      --config=/tmp/config-sync-{{ cluster_name }}.yaml \
+      --project={{ gcp_project_id }}
+  args:
+    executable: /bin/bash
+  environment:
+    GOOGLE_APPLICATION_CREDENTIALS: "{{ gem_home }}/bm-gcr.json"
+  register: gdc_deploy_config_sync
+  changed_when: gdc_deploy_config_sync.rc == 0
+  retries: 5
+  delay: 15
+  until: gdc_deploy_config_sync.rc == 0
+  when: gdc_deploy_cluster_create is not failed

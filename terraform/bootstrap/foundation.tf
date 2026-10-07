@@ -159,12 +159,17 @@ resource "google_project_iam_member" "gem_cluster_admin_roles" {
 }
 
 # ==============================================================================
-# GKE Hub Features
+# GKE Hub Fleet & Features
 # ==============================================================================
+
+resource "google_gke_hub_fleet" "default" {
+  project    = var.project_id
+  depends_on = [google_project_service.apis]
+}
 
 resource "google_gke_hub_feature" "configmanagement" {
   name       = "configmanagement"
   location   = "global"
   project    = var.project_id
-  depends_on = [google_project_service.apis]
+  depends_on = [google_gke_hub_fleet.default]
 }
